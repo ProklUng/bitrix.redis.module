@@ -1,0 +1,178 @@
+# Модуль для Битрикса, организующий работу с очередями через Redis (и не только)
+
+## Установка
+
+composer.json основного проекта:
+
+```json
+  "extra": {
+    "installer-paths": {
+      "./bitrix/modules/{$name}/": ["type:bitrix-d7-module", "type:bitrix-module"],
+      "./bitrix/components/{$name}/": ["type:bitrix-d7-component", "type:bitrix-component"],
+      "./bitrix/templates/{$name}/": ["type:bitrix-d7-template", "type:bitrix-theme"]
+    }
+  }
+```
+
+И:
+
+```json
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/proklung/bitrix.redis.module"
+        }
+    ]
+```
+
+```bash
+$ composer require proklung/bitrix-redis-module
+```
+
+Установите модуль `proklung.redis` в административном интерфейсе сайта `bitrix/admin/partner_modules.php`
+
+Добавьте следующий код в ваш `init.php`:
+
+```php
+use Bitrix\Main\Loader;
+use Proklung\Redis\DI\Services;
+
+if (Loader::includeModule('proklung.redis')) {
+    Services::boot();
+}
+```
+## Конфигурирование
+
+Конфигурация идентична родительскому пакету. Настройка производится посредством правки файлов `bitrix/.settings.php`
+и `bitrix/.settings_extra.php`:
+
+```php
+return [
+    'proklung.redis' => [
+        'value' => [
+            'enqueue' => [
+                'default' => [
+                    'transport' => 'redis://',
+                    'client' => [
+                        'default_queue' => 'default',
+                        'prefix' => 'redis',
+                        'app_name' => 'fedy',
+                    ],
+
+                ],
+            ],
+        ],
+    ]
+];
+```
+
+### Нюансы
+
+- `Консольные команды` - так как в процессе запуска модуля формируется отдельный контейнер, то для запуска команд 
+предлагается отдельный раннер `enqueue`.
+
+- Выпилено все, что касается Doctrine (и все, что относится к `jobs`, т.к. опирается на Доктрину).
+
+## Использование
+
+### Producer
+
+```php
+use Enqueue\Client\ProducerInterface;
+
+$provider = new Proklung\Redis\DI\Services();
+$container = $provider->boot();
+
+/** @var Symfony\Component\DependencyInjection\ContainerInterface $container */
+
+/** @var $producer ProducerInterface $producer */
+$producer = $container->get('enqueue.client.default.lazy_producer');
+
+$producer->sendEvent('bitrix-redis', 'REDDIS');
+```
+### Consumers
+
+```php
+use Interop\Queue\Message;
+use Interop\Queue\Context;
+use Interop\Queue\Processor;
+use Enqueue\Client\TopicSubscriberInterface;
+
+class FooRedisProcessor implements Processor, TopicSubscriberInterface
+{
+    public function process(Message $message, Context $session)
+    {
+        file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/redis-bitrix.log', $message->getBody());
+
+        return self::ACK;
+        // return self::REJECT; // when the message is broken
+        // return self::REQUEUE; // the message is fine but you want to postpone processing
+    }
+
+    public static function getSubscribedTopics()
+    {
+        return ['bitrix-redis'];
+    }
+}
+```
+
+Класс `FooRedisProcessor` должен быть зарегистрирован сервисом (и помечен тэгом `enqueue.topic_subscriber`) 
+в `.settings.php` модуля:
+
+```php
+return [
+    'parameters' => [
+        'value' => [
+        ],
+        'readonly' => false,
+    ],
+    'services' => [
+        'value' => [
+            'Proklung\Redis\Samples\FooRedisProcessor' =>
+            [
+                'className' => \Proklung\Redis\Samples\FooRedisProcessor::class,
+                'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'default']
+            ],
+        ],
+        'readonly' => false,
+    ],
+];
+```
+
+В целом модуль следует канве оригинального бандла. Основное отличие - способ конфигурирования сервисов (не Yaml, а битриксовые
+ массивные конфиги).
+
+## CLI
+
+Доступны некоторые команды, которые упрощают работу:
+
+* `enqueue:consume`        
+* `enqueue:produce`        
+* `enqueue:setup-broker`
+* `enqueue:routes`   
+* `enqueue:transport:consume`
+
+[Подробнее](https://php-enqueue.github.io/bundle/cli_commands/) в документации оригинального бандла.
+
+В папке `/install/bin` модуля лежит файл `enqueue`. При установке модуля система попробует скопировать его в директорию,
+`bin`, лежащую двумя уровнями выше `DOCUMENT_ROOT`. Если такой директории не существует, то сделано ничего не будет. Придется
+создать папку руками и скопировать туда файл вручную. 
+
+Запуск:
+
+```bash
+   php bin/enqueue enqueue:setup-broker
+```
+
+Все доступные команды:
+
+```bash
+   php bin/enqueue
+```
+
+## Credits
+
+Данный модуль представляет собой адаптацию [пакета](https://github.com/php-enqueue/enqueue-bundle) для работы
+в среде Битрикс.
+
+Оригинальная [документация](https://php-enqueue.github.io/symfony) валидна, за исключением некоторых нюансов.

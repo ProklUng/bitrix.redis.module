@@ -1,0 +1,48 @@
+{
+  "name": "proklung/bitrix.redis.module",
+  "description": "Поддержка очередей Redis (и не только) в Битриксе",
+  "type": "bitrix-d7-module",
+  "keywords": [
+    "bitrix",
+    "bitrix-module",
+    "bitrix-cms",
+    "bitrix-d7"
+  ],
+  "homepage": "https://github.com/ProklUng/bitrix.redis.module",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Gavrilov Fedy",
+      "email": "fedor.gavrilov.75@mail.ru"
+    }
+  ],
+
+  "support": {
+    "issues": "https://github.com/ProklUng/bitrix.redis.module/issues",
+    "source": "https://github.com/ProklUng/bitrix.redis.module"
+  },
+  "extra": {
+    "installer-name": "proklung.redis"
+  },
+  "require": {
+    "php": ">=7.1 || ^8.0",
+    "symfony/dependency-injection": "^4.0 || ^5.0",
+    "symfony/config": "^4.0 || ^5.0",
+    "symfony/yaml": "^4.0 || ^5.0",
+    "symfony/http-foundation": "^4.0 || ^5.0",
+    "symfony/http-kernel": "^4.0 || ^5.0",
+    "composer/installers": "~1",
+    "enqueue/redis": "^0.10.9",
+    "predis/predis": "^1.1",
+    "enqueue/fs": "^0.10.9",
+    "enqueue/amqp-bunny": "^0.10.9",
+    "queue-interop/amqp-interop": "^0.8.2",
+    "queue-interop/queue-interop": "^0.8",
+    "enqueue/enqueue": "^0.10",
+    "enqueue/null": "^0.10",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "icanhazstring/composer-unused": "^0.7.5"
+  }
+}

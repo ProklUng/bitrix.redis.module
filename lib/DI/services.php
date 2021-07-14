@@ -69,11 +69,6 @@ class Services
     private $environment;
 
     /**
-     * @var boolean $booted Загружена ли уже конструкция.
-     */
-    private static $booted = false;
-
-    /**
      * @var boolean $debug Режим отладки.
      */
     private $debug;
@@ -113,10 +108,7 @@ class Services
     {
         $self = new static();
 
-        if (!static::$booted) {
-            $self->load();
-            static::setBoot(true);
-        }
+        $self->load();
 
         return $self->getContainer();
     }
@@ -130,16 +122,6 @@ class Services
     public static function getInstance() : Container
     {
         return static::boot();
-    }
-
-    /**
-     * @param boolean $booted
-     *
-     * @return void
-     */
-    public static function setBoot(bool $booted) : void
-    {
-        static::$booted = $booted;
     }
 
     /**

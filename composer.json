@@ -1,5 +1,5 @@
 {
-  "name": "proklung/bitrix.redis.module",
+  "name": "proklung/bitrix-redis-module",
   "description": "Поддержка очередей Redis (и не только) в Битриксе",
   "type": "bitrix-d7-module",
   "keywords": [

@@ -89,6 +89,7 @@ $container = $provider->boot();
 $producer = $container->get('enqueue.client.default.lazy_producer');
 
 $producer->sendEvent('bitrix-redis', 'REDDIS');
+
 ```
 ### Consumers
 
@@ -123,6 +124,9 @@ class FooRedisProcessor implements Processor, TopicSubscriberInterface
 return [
     'parameters' => [
         'value' => [
+            'cache_path' => '/bitrix/cache/s1/proklung.redis', // Путь к закешированному контейнеру
+            'compile_container_envs' => ['dev', 'prod'], // Окружения при которых компилировать контейнер
+            'container.dumper.inline_factories' => false, // Дампить контейнер как одиночные файлы
         ],
         'readonly' => false,
     ],
@@ -141,6 +145,17 @@ return [
 
 В целом модуль следует канве оригинального бандла. Основное отличие - способ конфигурирования сервисов (не Yaml, а битриксовые
  массивные конфиги).
+ 
+### Кэширование контейнера
+
+Параметр `cache_path` - путь, куда ляжет скомпилированный контейнер. Если не задано, то по умолчанию `/bitrix/cache/s1/proklung.redis`.
+
+Предполагается, что в системе так или иначе установлена переменная среды `DEBUG` в массиве `$_ENV`. Если нет, то по умолчанию
+ полагается, что среда "отладочная".
+ 
+Параметр (массив) `compile_container_envs` указывает окружения, при которых необходимо кэшировать контейнер.
+
+Пока простая логика: `$_ENV["DEBUG"] === true` => окружение `dev`, иначе `prod`. 
 
 ## CLI
 

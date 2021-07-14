@@ -3,6 +3,7 @@
 namespace Proklung\Redis\DI;
 
 use Bitrix\Main\Config\Configuration;
+use Closure;
 use Enqueue\Consumption\Extension\ReplyExtension;
 use Enqueue\Consumption\Extension\SignalExtension;
 use Proklung\Redis\DI\Extensions\ResetServicesExtension;
@@ -28,6 +29,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
@@ -62,18 +64,36 @@ class Services
     private $services;
 
     /**
+     * @var string $environment
+     */
+    private $environment;
+
+    /**
      * @var boolean $booted Загружена ли уже конструкция.
      */
     private static $booted = false;
+
+    /**
+     * @var boolean $debug Режим отладки.
+     */
+    private $debug;
 
     /**
      * Services constructor.
      */
     public function __construct()
     {
+        $this->debug = (bool)$_ENV['DEBUG'] ?? true;
+        $this->environment = $this->debug ? 'dev' : 'prod';
+
         $this->config = Configuration::getInstance()->get('proklung.redis') ?? ['enqueue' => []];
         $this->parameters = Configuration::getInstance('proklung.redis')->get('parameters') ?? [];
         $this->services = Configuration::getInstance('proklung.redis')->get('services') ?? [];
+
+        // Инициализация параметров контейнера.
+        $this->parameters['cache_path'] = $this->parameters['cache_path'] ?? '/bitrix/cache/proklung.redis';
+        $this->parameters['container.dumper.inline_factories'] = $this->parameters['container.dumper.inline_factories'] ?? false;
+        $this->parameters['compile_container_envs'] = (array)$this->parameters['compile_container_envs'];
 
         $this->container = new ContainerBuilder();
         $adapter = new BitrixSettingsDiAdapter();
@@ -86,10 +106,10 @@ class Services
     /**
      * Загрузка и инициализация контейнера.
      *
-     * @return ContainerBuilder
+     * @return Container
      * @throws Exception
      */
-    public static function boot() : ContainerBuilder
+    public static function boot() : Container
     {
         $self = new static();
 
@@ -104,10 +124,10 @@ class Services
     /**
      * Alias boot для читаемости.
      *
-     * @return ContainerBuilder
+     * @return Container
      * @throws Exception
      */
-    public static function getInstance() : ContainerBuilder
+    public static function getInstance() : Container
     {
         return static::boot();
     }
@@ -129,6 +149,32 @@ class Services
      * @throws Exception
      */
     public function load() : void
+    {
+        $compilerContainer = new CompilerContainer();
+
+        // Кэшировать контейнер?
+        if (!in_array($this->environment, $this->parameters['compile_container_envs'], true)) {
+            $this->initContainer();
+            return;
+        }
+
+        $this->container = $compilerContainer->cacheContainer(
+            $this->container,
+            $_SERVER['DOCUMENT_ROOT'] . $this->parameters['cache_path'],
+            'container.php',
+            $this->environment,
+            $this->debug,
+            Closure::fromCallable([$this, 'initContainer'])
+        );
+    }
+
+    /**
+     * Инициализация контейнера.
+     *
+     * @return void
+     * @throws Exception
+     */
+    public function initContainer() : void
     {
         $this->container->setParameter('kernel.debug', $_ENV['DEBUG'] ?? true);
         $loader = new YamlFileLoader($this->container, new FileLocator(__DIR__ . '/../../configs'));
@@ -227,9 +273,9 @@ class Services
     /**
      * Экземпляр контейнера.
      *
-     * @return ContainerBuilder
+     * @return Container
      */
-    public function getContainer(): ContainerBuilder
+    public function getContainer(): Container
     {
         return $this->container;
     }

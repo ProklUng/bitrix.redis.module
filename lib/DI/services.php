@@ -44,9 +44,9 @@ use Symfony\Component\DependencyInjection\Reference;
 class Services
 {
     /**
-     * @var ContainerBuilder $container Контейнер.
+     * @var ContainerBuilder|null $container Контейнер.
      */
-    private $container;
+    private static $container;
 
     /**
      * @var array $config
@@ -89,13 +89,6 @@ class Services
         $this->parameters['cache_path'] = $this->parameters['cache_path'] ?? '/bitrix/cache/proklung.redis';
         $this->parameters['container.dumper.inline_factories'] = $this->parameters['container.dumper.inline_factories'] ?? false;
         $this->parameters['compile_container_envs'] = (array)$this->parameters['compile_container_envs'];
-
-        $this->container = new ContainerBuilder();
-        $adapter = new BitrixSettingsDiAdapter();
-
-        $adapter->importParameters($this->container, $this->config);
-        $adapter->importParameters($this->container, $this->parameters);
-        $adapter->importServices($this->container, $this->services);
     }
 
     /**
@@ -132,6 +125,10 @@ class Services
      */
     public function load() : void
     {
+        if (static::$container !== null) {
+            return;
+        }
+
         $compilerContainer = new CompilerContainer();
 
         // Кэшировать контейнер?
@@ -140,8 +137,8 @@ class Services
             return;
         }
 
-        $this->container = $compilerContainer->cacheContainer(
-            $this->container,
+        static::$container = $compilerContainer->cacheContainer(
+            static::$container,
             $_SERVER['DOCUMENT_ROOT'] . $this->parameters['cache_path'],
             'container.php',
             $this->environment,
@@ -158,8 +155,15 @@ class Services
      */
     public function initContainer() : void
     {
-        $this->container->setParameter('kernel.debug', $_ENV['DEBUG'] ?? true);
-        $loader = new YamlFileLoader($this->container, new FileLocator(__DIR__ . '/../../configs'));
+        static::$container = new ContainerBuilder();
+        $adapter = new BitrixSettingsDiAdapter();
+
+        $adapter->importParameters(static::$container, $this->config);
+        $adapter->importParameters(static::$container, $this->parameters);
+        $adapter->importServices(static::$container, $this->services);
+
+        static::$container->setParameter('kernel.debug', $_ENV['DEBUG'] ?? true);
+        $loader = new YamlFileLoader(static::$container, new FileLocator(__DIR__ . '/../../configs'));
         $loader->load('services.yml');
 
         // find default configuration
@@ -181,7 +185,7 @@ class Services
         $clientNames = [];
 
         $configManager = new \Proklung\Redis\DI\Configuration(
-            $this->container->getParameter('kernel.debug')
+            static::$container->getParameter('kernel.debug')
         );
         $config = $this->processConfiguration($configManager, $this->config);
 
@@ -190,10 +194,10 @@ class Services
             $transportNames[] = $name;
 
             $transportFactory = (new TransportFactory($name, $defaultName === $name));
-            $transportFactory->buildConnectionFactory($this->container, $modules['transport']);
-            $transportFactory->buildContext($this->container, []);
-            $transportFactory->buildQueueConsumer($this->container, $modules['consumption']);
-            $transportFactory->buildRpcClient($this->container, []);
+            $transportFactory->buildConnectionFactory(static::$container, $modules['transport']);
+            $transportFactory->buildContext(static::$container, []);
+            $transportFactory->buildQueueConsumer(static::$container, $modules['consumption']);
+            $transportFactory->buildRpcClient(static::$container, []);
 
             // client
             if (isset($modules['client'])) {
@@ -204,9 +208,9 @@ class Services
                 $clientConfig['consumption'] = $modules['consumption'];
 
                 $clientFactory = new ClientFactory($name, $defaultName === $name);
-                $clientFactory->build($this->container, $clientConfig);
-                $clientFactory->createDriver($this->container, $modules['transport']);
-                $clientFactory->createFlushSpoolProducerListener($this->container);
+                $clientFactory->build(static::$container, $clientConfig);
+                $clientFactory->createDriver(static::$container, $modules['transport']);
+                $clientFactory->createFlushSpoolProducerListener(static::$container);
             }
 
             // async events
@@ -218,7 +222,7 @@ class Services
                 $extension = new AsyncEventDispatcherExtension();
                 $extension->load([[
                     'context_service' => Context::class,
-                ]], $this->container);
+                ]], static::$container);
             }
         }
 
@@ -227,29 +231,29 @@ class Services
             $defaultClient = $defaultName;
         }
 
-        $this->container->setParameter('enqueue.transports', $transportNames);
-        $this->container->setParameter('enqueue.clients', $clientNames);
+        static::$container->setParameter('enqueue.transports', $transportNames);
+        static::$container->setParameter('enqueue.clients', $clientNames);
 
-        $this->container->setParameter('enqueue.default_transport', $defaultName);
+        static::$container->setParameter('enqueue.default_transport', $defaultName);
 
         if ($defaultClient) {
-            $this->container->setParameter('enqueue.default_client', $defaultClient);
+            static::$container->setParameter('enqueue.default_client', $defaultClient);
         }
 
         if ($defaultClient) {
-            $this->setupAutowiringForDefaultClientsProcessors($this->container, $defaultClient);
+            $this->setupAutowiringForDefaultClientsProcessors(static::$container, $defaultClient);
         }
 
-        $this->loadMessageQueueCollector($config, $this->container);
-        $this->loadAsyncCommands($config, $this->container);
+        $this->loadMessageQueueCollector($config, static::$container);
+        $this->loadAsyncCommands($config, static::$container);
 
-        $this->loadResetServicesExtension($config, $this->container);
-        $this->loadSignalExtension($config, $this->container);
-        $this->loadReplyExtension($config, $this->container);
+        $this->loadResetServicesExtension($config, static::$container);
+        $this->loadSignalExtension($config, static::$container);
+        $this->loadReplyExtension($config, static::$container);
 
-        $this->build($this->container);
+        $this->build(static::$container);
 
-        $this->container->compile(true);
+        static::$container->compile(true);
     }
 
     /**
@@ -259,7 +263,7 @@ class Services
      */
     public function getContainer(): Container
     {
-        return $this->container;
+        return static::$container;
     }
 
     /**

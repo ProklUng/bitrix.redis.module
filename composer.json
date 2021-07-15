@@ -17,6 +17,13 @@
     }
   ],
 
+  "repositories": [
+    {
+      "type": "git",
+      "url": "https://github.com/proklung/bitrix.containerable.boilerplate"
+    }
+  ],
+
   "support": {
     "issues": "https://github.com/ProklUng/bitrix.redis.module/issues",
     "source": "https://github.com/ProklUng/bitrix.redis.module"
@@ -40,7 +47,8 @@
     "queue-interop/queue-interop": "^0.8",
     "enqueue/enqueue": "^0.10",
     "enqueue/null": "^0.10",
-    "ext-json": "*"
+    "ext-json": "*",
+    "proklung/bitrix-containerable-boilerplate": "^1.0"
   },
   "require-dev": {
     "icanhazstring/composer-unused": "^0.7.5"

@@ -4,7 +4,7 @@
 use Bitrix\Main\DB\ConnectionException;
 use Bitrix\Main\Loader;
 use Proklung\Redis\CLI\CommandsSetup;
-use Proklung\Redis\CLI\ConsoleCommandConfigurator;
+use ProklUng\ContainerBoilerplate\CLI\ConsoleCommandConfigurator;
 use Proklung\Redis\DI\Services;
 use Symfony\Component\Console\Application;
 

@@ -129,6 +129,7 @@ class Services
             return;
         }
 
+        $this->createContainer();
         $compilerContainer = new CompilerContainer();
 
         // Кэшировать контейнер?
@@ -155,13 +156,6 @@ class Services
      */
     public function initContainer() : void
     {
-        static::$container = new ContainerBuilder();
-        $adapter = new BitrixSettingsDiAdapter();
-
-        $adapter->importParameters(static::$container, $this->config);
-        $adapter->importParameters(static::$container, $this->parameters);
-        $adapter->importServices(static::$container, $this->services);
-
         static::$container->setParameter('kernel.debug', $_ENV['DEBUG'] ?? true);
         $loader = new YamlFileLoader(static::$container, new FileLocator(__DIR__ . '/../../configs'));
         $loader->load('services.yml');
@@ -264,6 +258,21 @@ class Services
     public function getContainer(): Container
     {
         return static::$container;
+    }
+
+    /**
+     * Создать пустой экземпляр контейнера.
+     *
+     * @return void
+     */
+    private function createContainer() : void
+    {
+        static::$container = new ContainerBuilder();
+        $adapter = new BitrixSettingsDiAdapter();
+
+        $adapter->importParameters(static::$container, $this->config);
+        $adapter->importParameters(static::$container, $this->parameters);
+        $adapter->importServices(static::$container, $this->services);
     }
 
     /**

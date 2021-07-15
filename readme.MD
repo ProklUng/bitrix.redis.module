@@ -1,6 +1,9 @@
 # Модуль для Битрикса, организующий работу с очередями через Redis (и не только)
 
+Поддерживаемый транспорт:
+
 - Redis
+- RabbitMq
 - Filesystem
 
 ## Установка
@@ -193,6 +196,46 @@ return [
 ```
 
 ## Другие транспорты
+
+### RabbitMq
+
+#### Настройка
+
+`.settings.php` Битрикса:
+
+```php
+// ... предыдущее
+
+    'proklung.redis' => [
+        'value' => [
+            'enqueue' => [
+                // ... предыдущее
+                'rabbit' => [
+                    'transport' => 'amqp://',
+                    'client' => [
+                        'default_queue' => 'default',
+                        'prefix' => 'rabbit',
+                        'app_name' => 'fedy',
+                    ],
+                ],
+            ]
+        ]
+    ],
+```
+
+Все по аналогии с Redis или файловой системой. Важно первый раз не забыть запустить `setup-broker`:
+
+```bash
+php bin/enqueue enqueue:setup-broker --client=rabbit
+```
+
+#### Получение сообщений
+
+```bash
+php bin/enqueue enqueue:consume --client=rabbit
+```
+
+Где `rabbit` - название клиента, определяемое в `.settings.php` Битрикса.
 
 ### Файловая система
 

@@ -20,6 +20,11 @@ return [
                     'className' => \Proklung\Redis\Samples\FooFsProcessor::class,
                     'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'filesystem']
             ],
+            // Пример клиента на RabbitMq
+            'Proklung\Redis\Samples\FooRabbitProcessor' => [
+                'className' => \Proklung\Redis\Samples\FooRabbitProcessor::class,
+                'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'rabbit']
+            ],
         ],
         'readonly' => false,
     ],

@@ -45,8 +45,9 @@
     "queue-interop/queue-interop": "^0.8",
     "enqueue/enqueue": "^0.10",
     "enqueue/null": "^0.10",
-    "ext-json": "*",
-    "proklung/bitrix-containerable-boilerplate": "^1.0"
+    "proklung/bitrix.module.boilerplate": "^1.0",
+    "proklung/bitrix-containerable-boilerplate": "^1.0",
+    "ext-json": "*"
   },
   "require-dev": {
     "icanhazstring/composer-unused": "^0.7.5"

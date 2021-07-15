@@ -11,10 +11,14 @@ return [
     ],
     'services' => [
         'value' => [
-            'Proklung\Redis\Samples\FooRedisProcessor' =>
-            [
+            'Proklung\Redis\Samples\FooRedisProcessor' => [
                 'className' => \Proklung\Redis\Samples\FooRedisProcessor::class,
                 'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'default']
+            ],
+            // Пример клиента на файловой системе
+            'Proklung\Redis\Samples\FooFsProcessor' => [
+                    'className' => \Proklung\Redis\Samples\FooFsProcessor::class,
+                    'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'filesystem']
             ],
         ],
         'readonly' => false,

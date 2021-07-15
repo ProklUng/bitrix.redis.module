@@ -189,6 +189,109 @@ return [
    php bin/enqueue
 ```
 
+## Другие транспорты
+
+### Файловая система
+
+#### Настройка
+
+`.settings.php` Битрикса:
+
+```php
+// ... предыдущее
+
+    'proklung.redis' => [
+        'value' => [
+            'enqueue' => [
+                // ... предыдущее
+                'filesystem' => [
+                    // $_SERVER['DOCUMENT_ROOT'] - важно!
+                    'transport' => 'file:///' . $_SERVER['DOCUMENT_ROOT'] . '/bitrix/cache/s1/fs',
+                    'client' => [
+                        'default_queue' => 'default',
+                        'prefix' => 'fs',
+                        'app_name' => 'fedy',
+                    ],
+                ],
+            ]
+        ]
+    ],
+```
+
+#### Клиент
+
+Класс:
+
+```php
+use Interop\Queue\Message;
+use Interop\Queue\Context;
+use Interop\Queue\Processor;
+use Enqueue\Client\TopicSubscriberInterface;
+
+class FooFsProcessor implements Processor, TopicSubscriberInterface
+{
+    public function process(Message $message, Context $session)
+    {
+        file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/fs-bitrix.log', $message->getBody());
+
+        return self::ACK;
+    }
+
+    public static function getSubscribedTopics()
+    {
+        return ['bitrix-fs'];
+    }
+}
+```
+
+`.settings.php` модуля:
+
+```php
+return [
+    'services' => [
+        'value' => [
+            // ... предыдущие клиенты
+            'Proklung\Redis\Samples\FooFsProcessor' => [
+                    'className' => \Proklung\Redis\Samples\FooFsProcessor::class,
+                    'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'filesystem']
+            ],
+        ],
+        'readonly' => false,
+    ],
+];
+```
+
+#### Отправка сообщений
+
+```php
+$services = new Proklung\Redis\DI\Services();
+$container = $services->boot();
+
+$producerFs = $container->get('enqueue.client.filesystem.lazy_producer');
+$producerFs->sendEvent('bitrix-fs', 'FS');
+```
+
+#### Получение сообщений
+
+```bash
+php bin/enqueue enqueue:consume --client=filesystem
+```
+
+Где `filesystem` - название клиента, определяемое в `.settings.php` Битрикса.
+
+Или так:
+
+```php
+/** @var Context $context */
+$context = $container->get('enqueue.transport.filesystem.context');
+
+$fooQueue = $context->createQueue('fs.fedy.default'); // См. .settings.php, свойства клиента.
+$consumer = $context->createConsumer($fooQueue);
+$message = $consumer->receiveNoWait(); // Для примера, чтобы скрипт не зацикливался. В нормальной среде - $consumer->receive().
+
+$consumer->acknowledge($message);
+```
+
 ## Credits
 
 Данный модуль представляет собой адаптацию [пакета](https://github.com/php-enqueue/enqueue-bundle) для работы

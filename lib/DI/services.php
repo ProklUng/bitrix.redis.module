@@ -132,6 +132,7 @@ class Services
 
         $this->createContainer();
         $compilerContainer = new CompilerContainer($_SERVER['DOCUMENT_ROOT']);
+        $compilerContainer->setModuleId('proklung.redis');
 
         // Кэшировать контейнер?
         if (!in_array($this->environment, $this->parameters['compile_container_envs'], true)) {

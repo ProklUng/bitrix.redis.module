@@ -21,6 +21,10 @@ composer.json основного проекта:
         {
             "type": "git",
             "url": "https://github.com/proklung/bitrix.redis.module"
+        },
+        {
+          "type": "git",
+          "url": "https://github.com/proklung/bitrix.containerable.boilerplate"
         }
     ]
 ```

@@ -3,11 +3,9 @@
 namespace Proklung\Redis\DI;
 
 use Bitrix\Main\Config\Configuration;
-use Closure;
 use Enqueue\Consumption\Extension\ReplyExtension;
 use Enqueue\Consumption\Extension\SignalExtension;
-use ProklUng\ContainerBoilerplate\CompilerContainer;
-use ProklUng\ContainerBoilerplate\Utils\BitrixSettingsDiAdapter;
+use ProklUng\ContainerBoilerplate\DI\AbstractServiceContainer;
 use Proklung\Redis\DI\Extensions\ResetServicesExtension;
 use Proklung\Redis\Profiler\MessageQueueCollector;
 use Enqueue\Client\CommandSubscriberInterface;
@@ -30,7 +28,6 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
-use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
@@ -42,112 +39,48 @@ use Symfony\Component\DependencyInjection\Reference;
  * @since 13.07.2021
  * @internal Частично форкнуто из оригинального пакета https://github.com/php-enqueue/enqueue-bundle.
  */
-class Services
+class Services extends AbstractServiceContainer
 {
     /**
      * @var ContainerBuilder|null $container Контейнер.
      */
-    private static $container;
+    protected static $container;
 
     /**
-     * @var array $config
+     * @var array $config Битриксовая конфигурация.
      */
-    private $config;
+    protected $config = [];
 
     /**
-     * @var array $parameters
+     * @var array $parameters Параметры битриксового сервис-локатора.
      */
-    private $parameters;
+    protected $parameters = [];
 
     /**
-     * @var array $services
+     * @var array $services Сервисы битриксового сервис-локатора.
      */
-    private $services;
+    protected $services = [];
 
     /**
-     * @var string $environment
+     * @var string $moduleId ID модуля (переопределяется наследником).
      */
-    private $environment;
-
-    /**
-     * @var boolean $debug Режим отладки.
-     */
-    private $debug;
+    protected $moduleId = 'proklung.redis';
 
     /**
      * Services constructor.
      */
     public function __construct()
     {
-        $this->debug = (bool)$_ENV['DEBUG'] ?? true;
-        $this->environment = $this->debug ? 'dev' : 'prod';
+        parent::__construct();
 
-        $this->config = Configuration::getInstance()->get('proklung.redis') ?? ['enqueue' => []];
-        $this->parameters = Configuration::getInstance('proklung.redis')->get('parameters') ?? [];
-        $this->services = Configuration::getInstance('proklung.redis')->get('services') ?? [];
+        $this->config = Configuration::getInstance()->get($this->moduleId) ?? ['enqueue' => []];
+        $this->parameters = Configuration::getInstance($this->moduleId)->get('parameters') ?? [];
+        $this->services = Configuration::getInstance($this->moduleId)->get('services') ?? [];
 
         // Инициализация параметров контейнера.
         $this->parameters['cache_path'] = $this->parameters['cache_path'] ?? '/bitrix/cache/proklung.redis';
         $this->parameters['container.dumper.inline_factories'] = $this->parameters['container.dumper.inline_factories'] ?? false;
         $this->parameters['compile_container_envs'] = (array)$this->parameters['compile_container_envs'];
-    }
-
-    /**
-     * Загрузка и инициализация контейнера.
-     *
-     * @return Container
-     * @throws Exception
-     */
-    public static function boot() : Container
-    {
-        $self = new static();
-
-        $self->load();
-
-        return $self->getContainer();
-    }
-
-    /**
-     * Alias boot для читаемости.
-     *
-     * @return Container
-     * @throws Exception
-     */
-    public static function getInstance() : Container
-    {
-        return static::boot();
-    }
-
-    /**
-     * Загрузка всего хозяйства.
-     *
-     * @return void
-     * @throws Exception
-     */
-    public function load() : void
-    {
-        if (static::$container !== null) {
-            return;
-        }
-
-        $this->createContainer();
-        $compilerContainer = new CompilerContainer($_SERVER['DOCUMENT_ROOT']);
-        $compilerContainer->setModuleId('proklung.redis');
-
-        // Кэшировать контейнер?
-        if (!in_array($this->environment, $this->parameters['compile_container_envs'], true)) {
-            $this->initContainer();
-            return;
-        }
-
-        static::$container = $compilerContainer->cacheContainer(
-            static::$container,
-            $_SERVER['DOCUMENT_ROOT'] . $this->parameters['cache_path'],
-            'container.php',
-            $this->environment,
-            $this->debug,
-            Closure::fromCallable([$this, 'initContainer'])
-        );
     }
 
     /**
@@ -250,31 +183,6 @@ class Services
         $this->build(static::$container);
 
         static::$container->compile(true);
-    }
-
-    /**
-     * Экземпляр контейнера.
-     *
-     * @return Container
-     */
-    public function getContainer(): Container
-    {
-        return static::$container;
-    }
-
-    /**
-     * Создать пустой экземпляр контейнера.
-     *
-     * @return void
-     */
-    private function createContainer() : void
-    {
-        static::$container = new ContainerBuilder();
-        $adapter = new BitrixSettingsDiAdapter();
-
-        $adapter->importParameters(static::$container, $this->config);
-        $adapter->importParameters(static::$container, $this->parameters);
-        $adapter->importServices(static::$container, $this->services);
     }
 
     /**

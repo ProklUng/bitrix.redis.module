@@ -11,6 +11,9 @@ class proklung_redis extends CModule
 {
     use ModuleUtilsTrait;
 
+    /**
+     * proklung_redis constructor.
+     */
     public function __construct()
     {
         $arModuleVersion = [];
@@ -35,11 +38,6 @@ class proklung_redis extends CModule
         $this->MODULE_GROUP_RIGHTS = 'N';
         $this->PARTNER_NAME = Loc::getMessage($prefixLangCode.'_MODULE_PARTNER_NAME');
         $this->PARTNER_URI = Loc::getMessage($prefixLangCode.'MODULE_PARTNER_URI');
-
-        $this->INSTALL_PATHS = [
-            '/local/modules/proklung.redis/install/admin/redis_index.php'
-            => '/bitrix/admin/redis_index.php',
-        ];
 
         $this->moduleManager = new Module(
             [
@@ -87,6 +85,4 @@ class proklung_redis extends CModule
 
         return true;
     }
-
-
 }

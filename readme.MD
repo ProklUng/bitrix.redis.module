@@ -5,7 +5,7 @@
 - Redis
 - RabbitMq
 - Filesystem
-
+- DBAL
 ## Установка
 
 composer.json основного проекта:
@@ -236,6 +236,52 @@ php bin/enqueue enqueue:consume --client=rabbit
 ```
 
 Где `rabbit` - название клиента, определяемое в `.settings.php` Битрикса.
+
+### DBAL
+
+#### Установка
+
+Дабы не отягощать модуль зависимостями - `enqueue/dbal` не включен в стандартный `composer.json`. Для использования
+этого транспорта нужно самолично запустить `composer require enqueue/dbal` в конечном проекте.
+
+#### Настройка
+
+`.settings.php` Битрикса:
+
+```php
+// ... предыдущее
+
+    'proklung.redis' => [
+        'value' => [
+            'enqueue' => [
+                // ... предыдущее
+                'dbal' => [
+                    'transport' => 'mysql://root:@localhost/bitrix.loc',
+                    'client' => [
+                        'default_queue' => 'default',
+                        'prefix' => 'dbal',
+                        'app_name' => 'fedy',
+                    ],
+                ],
+            ]
+        ]
+    ],
+```
+
+Все по аналогии с Redis или файловой системой. Важно первый раз не забыть запустить `setup-broker` (будет создана
+таблица `enqueue`):
+
+```bash
+php bin/enqueue enqueue:setup-broker --client=dbal
+```
+
+#### Получение сообщений
+
+```bash
+php bin/enqueue enqueue:consume --client=dbal
+```
+
+Где `dbal` - название клиента, определяемое в `.settings.php` Битрикса.
 
 ### Файловая система
 

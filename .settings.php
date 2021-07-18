@@ -25,6 +25,11 @@ return [
                 'className' => \Proklung\Redis\Samples\FooRabbitProcessor::class,
                 'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'rabbit']
             ],
+            // Пример клиента на Dbal
+            'Proklung\Redis\Samples\FooDbalProcessor' => [
+                'className' => \Proklung\Redis\Samples\FooDbalProcessor::class,
+                'tags' => ['name' => 'enqueue.topic_subscriber', 'client' => 'dbal']
+            ],
         ],
         'readonly' => false,
     ],

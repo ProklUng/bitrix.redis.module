@@ -91,7 +91,6 @@ class Services extends AbstractServiceContainer
      */
     public function initContainer() : void
     {
-        static::$container->setParameter('kernel.debug', $_ENV['DEBUG'] ?? true);
         $loader = new YamlFileLoader(static::$container, new FileLocator(__DIR__ . '/../../configs'));
         $loader->load('services.yml');
 
